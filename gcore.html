@@ -1,0 +1,866 @@
+<!doctype html>
+<html>
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTML Blob Server</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://gcore.jsdelivr.net/npm/lucide@0.577.0/dist/umd/lucide.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&amp;family=DM+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface-light: #252b38;
+      --text: #e2e4eb;
+      --text-secondary: #9ca3af;
+      --primary: #6c5ce7;
+      --primary-dark: #5a4bcf;
+      --accent: #ff006e;
+      --success: #10b981;
+      --secondary: #45475a;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: linear-gradient(135deg, var(--bg) 0%, #0d1420 100%);
+      color: var(--text);
+    }
+
+    .code-area {
+      font-family: 'JetBrains Mono', monospace;
+      tab-size: 2;
+      resize: none;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid rgba(0, 217, 255, 0.1);
+      transition: all 0.3s ease;
+    }
+
+    .code-area:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 12px rgba(0, 217, 255, 0.2);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      box-shadow: 0 4px 12px rgba(0, 217, 255, 0.25);
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 217, 255, 0.35);
+      background: linear-gradient(135deg, #00e6ff 0%, #00b8d4 100%);
+    }
+
+    .btn-secondary {
+      background: rgba(159, 168, 218, 0.1);
+      border: 1px solid rgba(159, 168, 218, 0.2);
+      color: var(--text);
+      transition: all 0.3s ease;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(159, 168, 218, 0.2);
+      border-color: rgba(159, 168, 218, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .snippet-card {
+      background: var(--surface-light);
+      border: 1px solid rgba(0, 217, 255, 0.1);
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .snippet-card:hover {
+      border-color: var(--primary);
+      background: var(--surface);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 217, 255, 0.15);
+    }
+
+    .toast {
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .empty-state {
+      color: var(--text-secondary);
+    }
+
+    header {
+      background: linear-gradient(180deg, rgba(21, 27, 40, 0.8) 0%, rgba(21, 27, 40, 0.4) 100%);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(0, 217, 255, 0.1);
+    }
+  </style>
+  <style>body { box-sizing: border-box; }</style>
+    <script src="https://gcore.jsdelivr.net/npm/lucide@0.577.0/dist/umd/lucide.min.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full">
+  <div id="app" class="h-full w-full flex flex-col overflow-auto" style="background:var(--bg)">
+   <!-- Header -->
+   <header class="flex items-center justify-between px-6 py-4 border-b" style="border-color:var(--secondary)">
+    <h1 id="page-title" class="text-xl font-bold flex items-center gap-2" style="color:var(--text)"><span style="color:var(--primary)">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="code-2" aria-hidden="true" style="width:24px;height:24px" class="lucide lucide-code-2"><path d="m18 16 4-4-4-4"></path><path d="m6 8-4 4 4 4"></path><path d="m14.5 4-5 16"></path>
+      </svg></span> HTML Blob Server</h1>
+    <div class="flex items-center gap-3"><button onclick="autofill(`html`,document.documentElement.innerHTML)">Load this in new tab!</button> <button id="console-button" onclick="document.getElementById('console-overlay').classList.remove('hidden')" class="p-1.5 hidden rounded transition-colors" title="JavaScript Console" style="background:var(--primary);color:white">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="terminal" aria-hidden="true" style="width:18px;height:18px" class="lucide lucide-terminal"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line>
+      </svg></button> <button onclick="document.getElementById('settings-modal').classList.remove('hidden')" class="p-1.5 rounded transition-colors" title="Settings" style="background:var(--primary);color:white">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="settings" aria-hidden="true" style="width:18px;height:18px" class="lucide lucide-settings"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m2.12 2.12l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m2.12-2.12l4.24-4.24M19.78 19.78l-4.24-4.24m-2.12-2.12l-4.24-4.24"></path>
+      </svg></button> <button onclick="document.getElementById('info-overlay').classList.remove('hidden')" class="p-1.5 rounded transition-colors" title="How to use" style="background:var(--primary);color:white">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="help-circle" aria-hidden="true" style="width:18px;height:18px" class="lucide lucide-help-circle"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><path d="M12 17h.01"></path>
+      </svg></button> <span class="text-xs" style="color:var(--secondary)" id="count-badge">0 snippets</span>
+    </div>
+   </header><!-- Tabs -->
+   <div class="flex border-b overflow-x-auto" style="border-color:var(--secondary)">
+    <button onclick="switchTab('html')" id="tab-html" class="px-4 py-2 text-sm font-medium border-b-2 transition-colors" style="border-color:var(--primary);color:var(--text)">HTML</button> <button onclick="switchTab('zones')" id="tab-zones" class="px-4 py-2 text-sm font-medium border-b-2 transition-colors" style="border-color:transparent;color:var(--secondary)">Zones</button> <button onclick="switchTab('files')" id="tab-files" class="px-4 py-2 text-sm font-medium border-b-2 transition-colors" style="border-color:transparent;color:var(--secondary)">Files</button> <button onclick="switchTab('urls')" id="tab-urls" class="px-4 py-2 text-sm font-medium border-b-2 transition-colors" style="border-color:transparent;color:var(--secondary)">URLs</button>
+   </div>
+   <div class="flex-1 flex flex-col lg:flex-row overflow-auto">
+    <!-- HTML Editor -->
+    <div id="html-tab" class="flex-1 flex flex-col p-5 gap-3 min-w-0">
+     <div class="flex items-center gap-3">
+      <input id="snippet-name" type="text" placeholder="Snippet name…" class="flex-1 px-3 py-2 rounded-lg text-sm" style="background:var(--surface);border:1px solid var(--secondary);color:var(--text)" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--secondary)'"> <button onclick="saveSnippet()" class="btn-primary text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition-colors">
+       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="save" aria-hidden="true" style="width:16px;height:16px" class="lucide lucide-save"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"></path><path d="M7 3v4a1 1 0 0 0 1 1h7"></path>
+       </svg> Save </button>
+     </div><textarea id="html-editor" class="code-area flex-1 rounded-lg p-4 text-sm leading-relaxed" placeholder="Type or paste your HTML here…" spellcheck="false"></textarea>
+     <div class="flex gap-2">
+      <button onclick="previewHTML()" class="btn-secondary text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors">
+       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="eye" aria-hidden="true" style="width:14px;height:14px" class="lucide lucide-eye"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path><circle cx="12" cy="12" r="3"></circle>
+       </svg> Preview </button> <button onclick="openNewTab()" class="btn-secondary text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors">
+       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="external-link" aria-hidden="true" style="width:14px;height:14px" class="lucide lucide-external-link"><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+       </svg> New Tab </button> <button onclick="downloadHTML()" class="btn-secondary text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors">
+       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="download" aria-hidden="true" style="width:14px;height:14px" class="lucide lucide-download"><path d="M12 15V3"></path><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path>
+       </svg> Download </button> <button onclick="exportJSON()" class="btn-secondary text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors">
+       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="share-2" aria-hidden="true" style="width:14px;height:14px" class="lucide lucide-share-2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"></line><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"></line>
+       </svg> Export </button> <button onclick="importJSON()" class="btn-secondary text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors">
+       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="upload" aria-hidden="true" style="width:14px;height:14px" class="lucide lucide-upload"><path d="M12 3v12"></path><path d="m17 8-5-5-5 5"></path><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+       </svg> Import </button> <button onclick="clearEditor()" class="btn-secondary text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors">
+       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="x" aria-hidden="true" style="width:14px;height:14px" class="lucide lucide-x"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path>
+       </svg> Clear </button>
+     </div>
+    </div><!-- Zones Tab -->
+    <div id="zones-tab" class="hidden flex-1 flex flex-col p-5 gap-3 min-w-0">
+     <h1>BETA    <a href="javascript:document.getElementById('urls-url').value=`https://gcore.jsdelivr.net/gh/nprgaming/gn-math-assets/zones.json`;fetchUrls();switchTab('urls');" style="color:blue">List (use Cntl+F and search for the game you want, then enter the ID here)</a></h1>
+     <div class="flex items-center gap-3">
+      <input id="zones-url" maxlength="3" type="text" placeholder="Enter Zone Id (in url)…" class="flex-1 px-3 py-2 rounded-lg text-sm" style="background:var(--surface);border:1px solid var(--secondary);color:var(--text)" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--secondary)'"> <button onclick="fetchZones()" class="btn-primary text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition-colors">
+       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="download-cloud" aria-hidden="true" style="width:16px;height:16px" class="lucide lucide-download-cloud"><path d="M12 13v8l-4-4"></path><path d="m12 21 4-4"></path><path d="M4.393 15.269A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.436 8.284"></path>
+       </svg> Fetch </button>
+     </div><textarea id="zones-editor" class="code-area flex-1 rounded-lg p-4 text-sm leading-relaxed" placeholder="Zones code will appear here…" spellcheck="false" readonly></textarea>
+     <div class="flex gap-2">
+      <button onclick="copyZonesToEditor()" class="btn-secondary text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors">
+       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="copy" aria-hidden="true" style="width:14px;height:14px" class="lucide lucide-copy"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>
+       </svg> Copy to HTML </button>
+     </div>
+    </div><!-- Files Tab -->
+    <div id="files-tab" class="hidden flex-1 flex flex-col p-5 gap-3 min-w-0">
+     <h1>BETA <a href="javascript:autofill(`file`, `SINGLEFILE`);" style="color:blue">(NPP Files)</a></h1>
+     <div class="flex items-center gap-3">
+      <input id="files-url" type="text" placeholder="Enter Files Name (on the button)…" class="flex-1 px-3 py-2 rounded-lg text-sm" style="background:var(--surface);border:1px solid var(--secondary);color:var(--text)" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--secondary)'"> <button onclick="fetchFiles()" class="btn-primary text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition-colors">
+       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="download-cloud" aria-hidden="true" style="width:16px;height:16px" class="lucide lucide-download-cloud"><path d="M12 13v8l-4-4"></path><path d="m12 21 4-4"></path><path d="M4.393 15.269A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.436 8.284"></path>
+       </svg> Fetch </button>
+     </div><textarea id="files-editor" class="code-area flex-1 rounded-lg p-4 text-sm leading-relaxed" placeholder="Files code will appear here…" spellcheck="false" readonly></textarea>
+     <div class="flex gap-2">
+      <button onclick="copyFilesToEditor()" class="btn-secondary text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors">
+       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="copy" aria-hidden="true" style="width:14px;height:14px" class="lucide lucide-copy"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>
+       </svg> Copy to HTML </button>
+     </div>
+    </div><!-- Urls Tab-->
+    <div id="urls-tab" class="hidden flex-1 flex flex-col p-5 gap-3 min-w-0">
+     <h1>BETA <a href="javascript:autofill(`url`, `https://gcore.jsdelivr.net/gh/nprgaming/npr-gaming-main/index.html`);" style="color:blue">(GN-Math)</a></h1>
+     <div class="flex items-center gap-3">
+      <input id="urls-url" type="text" placeholder="Enter URL" class="flex-1 px-3 py-2 rounded-lg text-sm" style="background:var(--surface);border:1px solid var(--secondary);color:var(--text)" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--secondary)'"> <button onclick="fetchUrls()" class="btn-primary text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition-colors">
+       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="download-cloud" aria-hidden="true" style="width:16px;height:16px" class="lucide lucide-download-cloud"><path d="M12 13v8l-4-4"></path><path d="m12 21 4-4"></path><path d="M4.393 15.269A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.436 8.284"></path>
+       </svg> Fetch </button>
+     </div><textarea id="urls-editor" class="code-area flex-1 rounded-lg p-4 text-sm leading-relaxed" placeholder="Urls code will appear here…" spellcheck="false" readonly></textarea>
+     <div class="flex gap-2">
+      <button onclick="copyUrlsToEditor()" class="btn-secondary text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors">
+       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="copy" aria-hidden="true" style="width:14px;height:14px" class="lucide lucide-copy"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>
+       </svg> Copy to HTML </button>
+     </div>
+    </div>
+   </div><!-- Sidebar: saved snippets -->
+   <div class="lg:w-80 w-full border-t lg:border-t-0 lg:border-l flex flex-col overflow-auto" style="border-color:var(--secondary)">
+    <div class="px-5 py-3 font-semibold text-sm flex items-center gap-2" style="border-bottom:1px solid var(--secondary)">
+     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="folder" aria-hidden="true" style="width:16px;height:16px;color:var(--primary)" class="lucide lucide-folder"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"></path>
+     </svg> Saved Snippets
+    </div>
+    <div id="snippet-list" class="flex-1 overflow-auto p-3 flex flex-col gap-2">
+     <div class="empty-state text-center py-10 text-sm">
+      No snippets saved yet
+     </div>
+    </div>
+   </div>
+  </div><!-- Preview modal -->
+  <div id="preview-overlay" class="fixed inset-0 hidden" style="background:rgba(0,0,0,.7);z-index:50" onclick="closePreview(event)">
+   <div class="absolute inset-6 lg:inset-12 rounded-xl overflow-hidden flex flex-col" style="background:var(--surface)">
+    <div class="flex items-center justify-between px-4 py-2" style="border-bottom:1px solid var(--secondary)">
+     <span class="text-xs font-medium">Preview</span> <button onclick="document.getElementById('preview-overlay').classList.add('hidden')" class="p-1 rounded hover:bg-white/10 transition-colors">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="x" aria-hidden="true" style="width:16px;height:16px" class="lucide lucide-x"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path>
+      </svg></button>
+    </div><iframe id="preview-frame" class="flex-1 w-full bg-white"></iframe>
+   </div>
+  </div><!-- Toast -->
+  <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 toast px-4 py-2 rounded-lg text-sm font-medium hidden" style="background:var(--primary);color:#fff;z-index:60">
+   Opened in new tab
+  </div><!-- JavaScript Console -->
+  <div id="console-overlay" class="fixed inset-0 hidden" style="background:rgba(0,0,0,.7);z-index:50" onclick="closeConsole(event)">
+   <div class="absolute inset-6 lg:inset-12 lg:max-w-4xl lg:left-1/2 lg:-translate-x-1/2 rounded-xl overflow-hidden flex flex-col max-h-[90vh]" style="background:var(--surface)">
+    <div class="flex items-center justify-between px-4 py-3" style="border-bottom:1px solid var(--secondary)">
+     <span class="text-sm font-semibold">JavaScript Console (F3)</span> <button onclick="document.getElementById('console-overlay').classList.add('hidden')" class="p-1 rounded hover:bg-white/10 transition-colors">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="x" aria-hidden="true" style="width:16px;height:16px" class="lucide lucide-x"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path>
+      </svg></button>
+    </div>
+    <div class="flex-1 flex flex-col overflow-auto">
+     <div id="console-output" class="flex-1 overflow-auto p-4 font-mono text-xs space-y-1" style="background:var(--bg);color:var(--text)">
+      <div style="color:var(--secondary)">
+       // JavaScript Console - Type code below and press Ctrl+Enter to execute
+      </div>
+     </div>
+     <div style="border-top:1px solid var(--secondary)"><textarea id="console-input" class="code-area w-full rounded-none p-3 text-xs" style="min-height:120px;border:none;resize:none" placeholder="// Type JavaScript here. Press Ctrl+Enter to run" spellcheck="false"></textarea>
+     </div>
+    </div>
+    <div class="flex gap-2 p-3" style="border-top:1px solid var(--secondary)"><button onclick="executeConsoleCode()" class="btn-primary text-white px-4 py-2 rounded text-xs font-semibold flex items-center gap-1.5 transition-colors">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="play" aria-hidden="true" style="width:14px;height:14px" class="lucide lucide-play"><polygon points="5 3 19 12 5 21 5 3"></polygon>
+      </svg> Execute </button> <button onclick="clearConsoleOutput()" class="btn-secondary text-white px-3 py-2 rounded text-xs font-medium flex items-center gap-1 transition-colors">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="trash-2" aria-hidden="true" style="width:14px;height:14px" class="lucide lucide-trash-2"><path d="M3 6h18"></path><path d="M8 6v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6"></path><path d="M12.5 3L11 6"></path><path d="M13 6h-2"></path><path d="M10 11v6"></path><path d="M14 11v6"></path>
+      </svg> Clear </button>
+    </div>
+   </div>
+  </div><!-- Settings modal -->
+  <div id="settings-modal" class="fixed inset-0 hidden" style="background:rgba(0,0,0,.7);z-index:50" onclick="closeSettings(event)">
+   <div class="absolute inset-6 lg:inset-12 lg:max-w-2xl lg:left-1/2 lg:-translate-x-1/2 rounded-xl overflow-hidden flex flex-col max-h-[90vh]" style="background:var(--surface)">
+    <div class="flex items-center justify-between px-4 py-3" style="border-bottom:1px solid var(--secondary)">
+     <span class="text-sm font-semibold">Settings</span> <button onclick="document.getElementById('settings-modal').classList.add('hidden')" class="p-1 rounded hover:bg-white/10 transition-colors">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="x" aria-hidden="true" style="width:16px;height:16px" class="lucide lucide-x"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path>
+      </svg></button>
+    </div>
+    <div class="flex-1 overflow-auto p-4 text-sm space-y-4" style="color:var(--text)">
+     <div>
+      <h3 class="font-semibold mb-3">Link Behavior</h3>
+      <p style="color:var(--secondary);margin-bottom:2rem">How should the "New Tab" button open links?</p>
+      <div class="flex gap-2 flex-col"><label style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;background:var(--bg);border:1px solid var(--secondary);border-radius:0.5rem;cursor:pointer"> <input type="radio" name="linkBehavior" value="same" onchange="setLinkBehavior('same')" style="cursor:pointer"> Same Window </label> <label style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;background:var(--bg);border:1px solid var(--secondary);border-radius:0.5rem;cursor:pointer"> <input type="radio" name="linkBehavior" value="new" onchange="setLinkBehavior('new')" style="cursor:pointer"> New Window </label>
+      </div>
+     </div>
+     <div style="border-top:1px solid var(--secondary);padding-top:1.5rem">
+      <h3 class="font-semibold mb-3">Download Format</h3>
+      <p style="color:var(--secondary);margin-bottom:2rem">What file extension for downloads?</p>
+      <div class="flex gap-2 flex-col"><label style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;background:var(--bg);border:1px solid var(--secondary);border-radius:0.5rem;cursor:pointer"> <input type="radio" name="downloadFormat" value="html" onchange="setDownloadFormat('html')" style="cursor:pointer"> .html </label> <label style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;background:var(--bg);border:1px solid var(--secondary);border-radius:0.5rem;cursor:pointer"> <input type="radio" name="downloadFormat" value="txt" onchange="setDownloadFormat('txt')" style="cursor:pointer"> .txt </label>
+      </div>
+     </div>
+     <div style="border-top:1px solid var(--secondary);padding-top:1.5rem">
+      <h3 class="font-semibold mb-3">Show Console</h3>
+      <p style="color:var(--secondary);margin-bottom:2rem">Add javascript console button.</p>
+      <div class="flex gap-2 flex-col"><label style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;background:var(--bg);border:1px solid var(--secondary);border-radius:0.5rem;cursor:pointer"> <input type="radio" name="console" value="html" onchange="document.getElementById('console-button').classList.remove('hidden')" style="cursor:pointer"> Show </label> <label style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;background:var(--bg);border:1px solid var(--secondary);border-radius:0.5rem;cursor:pointer"> <input type="radio" name="console" value="txt" onchange="document.getElementById('console-button').classList.add('hidden')" style="cursor:pointer"> Hide </label>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div><!-- Info modal -->
+  <div id="info-overlay" class="fixed inset-0 hidden" style="background:rgba(0,0,0,.7);z-index:50" onclick="closeInfo(event)">
+   <div class="absolute inset-6 lg:inset-12 lg:max-w-2xl lg:left-1/2 lg:-translate-x-1/2 rounded-xl overflow-hidden flex flex-col max-h-[90vh]" style="background:var(--surface)">
+    <div class="flex items-center justify-between px-4 py-3" style="border-bottom:1px solid var(--secondary)">
+     <span class="text-sm font-semibold">How to Use</span> <button onclick="document.getElementById('info-overlay').classList.add('hidden')" class="p-1 rounded hover:bg-white/10 transition-colors">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="x" aria-hidden="true" style="width:16px;height:16px" class="lucide lucide-x"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path>
+      </svg></button>
+    </div>
+    <div class="flex-1 overflow-auto p-4 text-sm space-y-4" style="color:var(--text)">
+     <div>
+      <h3 class="font-semibold mb-2 flex items-center gap-2">
+       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="eye" aria-hidden="true" style="width:16px;height:16px;color:var(--primary)" class="lucide lucide-eye"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path><circle cx="12" cy="12" r="3"></circle>
+       </svg> Preview</h3>
+      <p style="color:var(--secondary)">Renders your HTML in a temporary live preview window within this tab. Perfect for testing code quickly.</p>
+     </div>
+     <div>
+      <h3 class="font-semibold mb-2 flex items-center gap-2">
+       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="external-link" aria-hidden="true" style="width:16px;height:16px;color:var(--primary)" class="lucide lucide-external-link"><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+       </svg> New Tab</h3>
+      <p style="color:var(--secondary)">Opens your HTML in a brand new browser tab using a blob URL. The tab stays open until you close it, but the blob URL expires when the browser closes completely.</p>
+     </div>
+     <div>
+      <h3 class="font-semibold mb-2 flex items-center gap-2">
+       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="download" aria-hidden="true" style="width:16px;height:16px;color:var(--primary)" class="lucide lucide-download"><path d="M12 15V3"></path><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path>
+       </svg> Download</h3>
+      <p style="color:var(--secondary)">Saves the current HTML as a <code style="background:var(--bg);padding:2px 4px;border-radius:4px">.html</code> file to your computer. Works even after closing this page.</p>
+     </div>
+     <div>
+      <h3 class="font-semibold mb-2 flex items-center gap-2">
+       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="share-2" aria-hidden="true" style="width:16px;height:16px;color:var(--primary)" class="lucide lucide-share-2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"></line><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"></line>
+       </svg> Export</h3>
+      <p style="color:var(--secondary)">Exports all your saved snippets as a JSON file. You can then share this file with others or keep it as a backup.</p>
+     </div>
+     <div>
+      <h3 class="font-semibold mb-2 flex items-center gap-2">
+       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="upload" aria-hidden="true" style="width:16px;height:16px;color:var(--primary)" class="lucide lucide-upload"><path d="M12 3v12"></path><path d="m17 8-5-5-5 5"></path><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+       </svg> Import</h3>
+      <p style="color:var(--secondary)">Restores snippets from a previously exported JSON file. This adds them to your existing snippets (no data lost).</p>
+     </div>
+     <div style="padding:3px 8px;border-radius:6px;background:rgba(108,92,231,0.15);border-left:3px solid var(--primary)">
+      <p style="color:var(--secondary);margin:0"><strong>💡 Data Storage:</strong> All snippets live in your browser's IndexedDB. They persist across tabs &amp; sessions until you delete them. Closing the browser doesn't delete them.</p>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+// Link behavior preference
+let linkBehavior = 'new';
+let downloadFormat = 'txt';
+
+function setLinkBehavior(behavior) {
+  linkBehavior = behavior;
+  localStorage.setItem('linkBehavior', behavior);
+  document.querySelector(`input[name="linkBehavior"][value="${behavior}"]`).checked = true;
+  showToast('Link behavior set to ' + (behavior === 'new' ? 'new window' : 'same window'));
+}
+
+function setDownloadFormat(format) {
+  downloadFormat = format;
+  localStorage.setItem('downloadFormat', format);
+  document.querySelector(`input[name="downloadFormat"][value="${format}"]`).checked = true;
+  showToast('Download format set to .' + format);
+}
+
+function loadSettings() {
+  const saved = localStorage.getItem('linkBehavior');
+  if (saved) {
+    linkBehavior = saved;
+    document.querySelector(`input[name="linkBehavior"][value="${saved}"]`).checked = true;
+  } else {
+    document.querySelector('input[name="linkBehavior"][value="new"]').checked = true;
+  }
+  
+  const savedFormat = localStorage.getItem('downloadFormat');
+  if (savedFormat) {
+    downloadFormat = savedFormat;
+    document.querySelector(`input[name="downloadFormat"][value="${savedFormat}"]`).checked = true;
+  } else {
+    document.querySelector('input[name="downloadFormat"][value="txt"]').checked = true;
+  }
+}
+
+function closeSettings(e) {
+  if (e && e.target === document.getElementById('settings-modal')) {
+    document.getElementById('settings-modal').classList.add('hidden');
+  }
+}
+
+// IndexedDB setup
+const DB_NAME = 'Algebra1-blobServer';
+const DB_VERSION = 1;
+const STORE = 'snippets';
+let db;
+
+
+function openDB() {
+return new Promise((resolve, reject) => {
+const req = indexedDB.open(DB_NAME, DB_VERSION);
+req.onupgradeneeded = e => {
+const d = e.target.result;
+if (!d.objectStoreNames.contains(STORE)) {
+d.createObjectStore(STORE, { keyPath: 'id' });
+}
+};
+req.onsuccess = e => { db = e.target.result; resolve(db); };
+req.onerror = e => reject(e.target.error);
+});
+}
+
+
+function tx(mode) { return db.transaction(STORE, mode).objectStore(STORE); }
+
+
+function dbGetAll() {
+return new Promise((r, j) => { const req = tx('readonly').getAll(); req.onsuccess = () => r(req.result); req.onerror = () => j(req.error); });
+}
+
+
+function dbPut(rec) {
+return new Promise((r, j) => { const req = tx('readwrite').put(rec); req.onsuccess = () => r(); req.onerror = () => j(req.error); });
+}
+
+
+function dbDelete(id) {
+return new Promise((r, j) => { const req = tx('readwrite').delete(id); req.onsuccess = () => r(); req.onerror = () => j(req.error); });
+}
+
+
+// Toast
+function showToast(msg) {
+const t = document.getElementById('toast');
+t.textContent = msg;
+t.classList.remove('hidden');
+clearTimeout(t._tid);
+t._tid = setTimeout(() => t.classList.add('hidden'), 2000);
+}
+
+
+// Save snippet as blob
+async function saveSnippet() {
+const name = document.getElementById('snippet-name').value.trim() || 'Untitled';
+const html = document.getElementById('html-editor').value;
+if (!html) { showToast('Nothing to save'); return; }
+
+
+const blob = new Blob([html], { type: 'text/html' });
+// Store blob directly in IndexedDB
+const record = {
+id: Date.now().toString(),
+name,
+blob,
+size: blob.size,
+createdAt: new Date().toISOString()
+};
+await dbPut(record);
+showToast('Saved!');
+document.getElementById('snippet-name').value = '';
+renderList();
+}
+
+
+// Load snippet into editor
+async function loadSnippet(id) {
+const all = await dbGetAll();
+const rec = all.find(r => r.id === id);
+if (!rec) return;
+const text = await rec.blob.text();
+document.getElementById('html-editor').value = text;
+document.getElementById('snippet-name').value = rec.name;
+showToast('Loaded');
+}
+
+//Autofill function (Beta)
+async function autofill(type, content) {
+if (type=="url"){
+document.getElementById('urls-url').value=content;fetchUrls();
+setTimeout(function() {copyUrlsToEditor();openNewTab();
+}, 500);}
+if (type=="file"){
+document.getElementById('files-url').value=content;fetchFiles();
+setTimeout(function() {copyFilesToEditor();openNewTab();
+}, 500);}
+if (type=="zone"){
+document.getElementById('zones-url').value=content;fetchZones();
+setTimeout(function() {copyZonesToEditor();openNewTab();
+}, 500);}
+if (type=="html"){
+document.getElementById('html-editor').value=content;
+setTimeout(function() {openNewTab();
+}, 500);}
+
+}
+
+// Delete snippet
+let pendingDeleteId = null;
+async function deleteSnippet(id, btn) {
+if (pendingDeleteId === id) {
+await dbDelete(id);
+pendingDeleteId = null;
+showToast('Deleted');
+renderList();
+} else {
+// First click: confirm
+if (pendingDeleteId) resetDeleteBtns();
+pendingDeleteId = id;
+btn.innerHTML = '<i data-lucide="alert-triangle" style="width:13px;height:13px"></i> Confirm?';
+btn.style.color = '#ff6b6b';
+lucide.createIcons();
+setTimeout(() => { if (pendingDeleteId === id) resetDeleteBtns(); }, 3000);
+}
+}
+
+
+function resetDeleteBtns() {
+pendingDeleteId = null;
+document.querySelectorAll('.del-btn').forEach(b => {
+b.innerHTML = '<i data-lucide="trash-2" style="width:13px;height:13px"></i>';
+b.style.color = '';
+lucide.createIcons();
+});
+}
+
+
+// Preview
+function previewHTML() {
+const html = document.getElementById('html-editor').value;
+if (!html) { showToast('Nothing to preview'); return; }
+const blob = new Blob([html], { type: 'text/html' });
+const url = URL.createObjectURL(blob);
+const frame = document.getElementById('preview-frame');
+frame.src = url;
+document.getElementById('preview-overlay').classList.remove('hidden');
+// Revoke after load
+frame.onload = () => URL.revokeObjectURL(url);
+}
+
+
+function openNewTab() {
+let html = document.getElementById('html-editor').value;
+if (!html) { showToast('Nothing to open'); return;
+	}
+const blob = new Blob([html], { type: 'text/html' });
+const url = URL.createObjectURL(blob);
+if (linkBehavior === 'new') {
+  window.open(url, '_blank', 'width=1800');
+} else {
+  window.location.href = url;
+}
+showToast('Opened in ' + (linkBehavior === 'new' ? 'new' : 'same') + ' window');
+}
+
+
+function closePreview(e) {
+if (e.target === document.getElementById('preview-overlay')) {
+document.getElementById('preview-overlay').classList.add('hidden');
+}
+}
+
+
+function closeInfo(e) {
+if (e.target === document.getElementById('info-overlay')) {
+document.getElementById('info-overlay').classList.add('hidden');
+}
+}
+
+// JavaScript Console
+function closeConsole(e) {
+if (e.target === document.getElementById('console-overlay')) {
+document.getElementById('console-overlay').classList.add('hidden');
+}
+}
+
+function addConsoleOutput(line, isError = false) {
+const output = document.getElementById('console-output');
+const div = document.createElement('div');
+div.style.color = isError ? '#ff6b6b' : 'var(--text-secondary)';
+div.textContent = line;
+output.appendChild(div);
+output.parentElement.scrollTop = output.parentElement.scrollHeight;
+}
+
+// Intercept console.log, console.error, etc.
+const originalLog = console.log;
+const originalError = console.error;
+const originalWarn = console.warn;
+
+console.log = function(...args) {
+  const msg = args.map(arg => typeof arg === 'string' ? arg : JSON.stringify(arg)).join(' ');
+  addConsoleOutput('log: ' + msg);
+  originalLog.apply(console, args);
+};
+
+console.error = function(...args) {
+  const msg = args.map(arg => typeof arg === 'string' ? arg : JSON.stringify(arg)).join(' ');
+  addConsoleOutput('error: ' + msg, true);
+  originalError.apply(console, args);
+};
+
+console.warn = function(...args) {
+  const msg = args.map(arg => typeof arg === 'string' ? arg : JSON.stringify(arg)).join(' ');
+  addConsoleOutput('warn: ' + msg);
+  originalWarn.apply(console, args);
+};
+
+function executeConsoleCode() {
+const code = document.getElementById('console-input').value.trim();
+if (!code) return;
+
+addConsoleOutput('> ' + code.split('\n')[0] + (code.split('\n').length > 1 ? '...' : ''));
+
+try {
+  // Try executing as expression first (handles: console.log('hi'), etc.)
+  // If that fails, try as statement (handles: let x = 5, etc.)
+  let result;
+  try {
+    result = eval('(' + code + ')');
+  } catch (e1) {
+    // If wrapping in parens fails, try executing as plain statement
+    eval(code);
+    result = undefined;
+  }
+  
+  if (result !== undefined) {
+    addConsoleOutput('← ' + JSON.stringify(result));
+  } else {
+    addConsoleOutput('← undefined');
+  }
+} catch (err) {
+  addConsoleOutput('✗ ' + err.message, true);
+}
+}
+
+function clearConsoleOutput() {
+const output = document.getElementById('console-output');
+output.innerHTML = '<div style="color:var(--secondary)">// Console cleared</div>';
+}
+
+// F3 key to open console
+document.addEventListener('keydown', e => {
+if (e.key === 'F3') {
+  e.preventDefault();
+  document.getElementById('console-overlay').classList.remove('hidden');
+  document.getElementById('console-input').focus();
+}
+});
+
+// Ctrl+Enter to execute in console
+document.getElementById('console-input').addEventListener('keydown', e => {
+if (e.ctrlKey && e.key === 'Enter') {
+  e.preventDefault();
+  executeConsoleCode();
+}
+});
+
+
+
+function downloadHTML() {
+const html = document.getElementById('html-editor').value;
+if (!html) { showToast('Nothing to download'); return; }
+const name = document.getElementById('snippet-name').value.trim() || 'download';
+const blob = new Blob([html], { type: 'text/html' });
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url;
+a.download = name + '.' + downloadFormat;
+document.body.appendChild(a);
+a.click();
+document.body.removeChild(a);
+URL.revokeObjectURL(url);
+showToast('Downloaded!');
+}
+
+
+// Export all snippets as JSON
+async function exportJSON() {
+const all = await dbGetAll();
+if (!all.length) { showToast('No snippets to export'); return; }
+const exported = [];
+for (const rec of all) {
+const text = await rec.blob.text();
+exported.push({ name: rec.name, html: text, createdAt: rec.createdAt });
+}
+const json = JSON.stringify(exported, null, 2);
+const blob = new Blob([json], { type: 'application/json' });
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url;
+a.download = 'html-snippets-' + new Date().toISOString().split('T')[0] + '.json';
+document.body.appendChild(a);
+a.click();
+document.body.removeChild(a);
+URL.revokeObjectURL(url);
+showToast('Exported ' + all.length + ' snippet(s)!');
+}
+
+
+// Import snippets from JSON
+function importJSON() {
+const input = document.createElement('input');
+input.type = 'file';
+input.accept = '.json';
+input.onchange = async (e) => {
+const file = e.target.files[0];
+if (!file) return;
+const text = await file.text();
+try {
+const snippets = JSON.parse(text);
+if (!Array.isArray(snippets)) throw new Error('Invalid format');
+let imported = 0;
+for (const s of snippets) {
+if (s.name && s.html) {
+const blob = new Blob([s.html], { type: 'text/html' });
+await dbPut({
+id: Date.now().toString() + Math.random(),
+name: s.name,
+blob,
+size: blob.size,
+createdAt: s.createdAt || new Date().toISOString()
+});
+imported++;
+}
+}
+showToast('Imported ' + imported + ' snippet(s)!');
+renderList();
+} catch (err) {
+showToast('Invalid JSON file');
+}
+};
+input.click();
+}
+
+
+function clearEditor() {
+document.getElementById('html-editor').value = '';
+document.getElementById('snippet-name').value = '';
+}
+
+
+function formatSize(b) {
+if (b < 1024) return b + ' B';
+return (b / 1024).toFixed(1) + ' KB';
+}
+
+
+// Render saved list
+async function renderList() {
+const list = document.getElementById('snippet-list');
+const all = (await dbGetAll()).sort((a, b) => b.id - a.id);
+document.getElementById('count-badge').textContent = all.length + ' snippet' + (all.length !== 1 ? 's' : '');
+
+
+if (!all.length) {
+list.innerHTML = '<div class="empty-state text-center py-10 text-sm">No snippets saved yet</div>';
+return;
+}
+
+
+list.innerHTML = all.map(r => `
+<div class="snippet-card rounded-lg p-3 cursor-pointer transition-colors" onclick="loadSnippet('${r.id}')">
+<div class="flex items-center justify-between">
+<span class="font-medium text-sm truncate flex-1">${escHTML(r.name)}</span>
+<button class="del-btn p-1 rounded hover:bg-white/10 transition-colors" style="color:var(--secondary)" onclick="event.stopPropagation(); deleteSnippet('${r.id}', this)">
+<i data-lucide="trash-2" style="width:13px;height:13px"></i>
+</button>
+</div>
+<div class="flex items-center gap-2 mt-1 text-xs" style="color:var(--secondary)">
+<span>${formatSize(r.size)}</span>
+<span>·</span>
+<span>${new Date(r.createdAt).toLocaleDateString()}</span>
+</div>
+</div>
+`).join('');
+lucide.createIcons();
+}
+
+
+function escHTML(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+
+// Tab key support in editor
+document.addEventListener('DOMContentLoaded', () => {
+const editor = document.getElementById('html-editor');
+editor.addEventListener('keydown', e => {
+if (e.key === 'Tab') {
+e.preventDefault();
+const s = editor.selectionStart, end = editor.selectionEnd;
+editor.value = editor.value.substring(0, s) + ' ' + editor.value.substring(end);
+editor.selectionStart = editor.selectionEnd = s + 2;
+}
+});
+});
+
+
+// Tab switching
+function switchTab(tabName) {
+const tabs = ['html', 'zones', 'files', 'urls'];
+tabs.forEach(t => {
+document.getElementById(t + '-tab').classList.add('hidden');
+document.getElementById('tab-' + t).style.borderColor = 'transparent';
+document.getElementById('tab-' + t).style.color = 'var(--secondary)';
+});
+document.getElementById(tabName + '-tab').classList.remove('hidden');
+document.getElementById('tab-' + tabName).style.borderColor = 'var(--primary)';
+document.getElementById('tab-' + tabName).style.color = 'var(--text)';
+}
+
+
+// Fetch Zones
+async function fetchZones() {
+const url = `https://gcore.jsdelivr.net/gh/nprgaming/gn-math-html@main/`+document.getElementById('zones-url').value.trim()+'.html';
+if (!url) { showToast('Enter a URL'); return; }
+try {
+const resp = await fetch(url);
+if (!resp.ok) { showToast('Failed to fetch: ' + resp.status); return; }
+const text = await resp.text();
+document.getElementById('zones-editor').value = text.replaceAll('cdn.jsdelivr.net','gcore.jsdelivr.net');
+showToast('Zones fetched!');
+} catch (err) {
+showToast('Error: ' + err.message);
+}
+}
+
+
+// Fetch Files
+async function fetchFiles() {
+const input = document.getElementById('files-url').value.trim();
+if (!input) { showToast('Enter a URL'); return; }
+const url = input.startsWith('cl')
+? `https://gcore.jsdelivr.net/gh/bub${"b"}ls/ugs-singlefile/UGS-Files/${input}.html`
+: `https://gcore.jsdelivr.net/gh/bubb${"l"}s/ugs-singlefile/UGS-Files/cl${input}.html`;
+try {
+const resp = await fetch(url);
+if (!resp.ok) { showToast('Failed to fetch: ' + resp.status); return; }
+const text = await resp.text();
+document.getElementById('files-editor').value = text.replaceAll('cdn.jsdelivr.net','gcore.jsdelivr.net');
+showToast('Files fetched!');
+} catch (err) {
+showToast('Error: ' + err.message);
+}
+}
+//fetchUrls
+async function fetchUrls() {
+const url = document.getElementById('urls-url').value.trim();
+if (!url) { showToast('Enter a URL'); return; }
+try {
+const resp = await fetch(url);
+if (!resp.ok) { showToast('Failed to fetch: ' + resp.status); return; }
+const text = await resp.text();
+document.getElementById('urls-editor').value = text.replaceAll('cdn.jsdelivr.net','gcore.jsdelivr.net');
+showToast('Urls fetched!');
+} catch (err) {
+showToast('Error: ' + err.message);
+}}
+// Copy to HTML editor
+function copyZonesToEditor() {
+const code = document.getElementById('zones-editor').value;
+if (!code) { showToast('Nothing to copy'); return; }
+document.getElementById('html-editor').value = code;
+switchTab('html');
+showToast('Copied to HTML!');
+}
+
+
+function copyFilesToEditor() {
+const code = document.getElementById('files-editor').value;
+if (!code) { showToast('Nothing to copy'); return; }
+document.getElementById('html-editor').value = code;
+switchTab('html');
+showToast('Copied to HTML!');
+}
+
+
+function copyUrlsToEditor() {
+const code = document.getElementById('urls-editor').value+`<base href="${document.getElementById("urls-url").value}"></base>`;
+if (!code) { showToast('Nothing to copy'); return; }
+document.getElementById('html-editor').value = code;
+switchTab('html');
+showToast('Copied to HTML!');
+}
+
+
+// Init
+openDB().then(() => {
+renderList();
+lucide.createIcons();
+loadSettings();
+});
+</script>
+ </body>
+</html>
